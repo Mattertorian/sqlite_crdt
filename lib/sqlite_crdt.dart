@@ -94,10 +94,14 @@ class SqliteCrdt extends SqlCrdt {
   @override
   Future<Iterable<String>> getTables() async {
     print('SqliteCrdt.getTables, _excludedTables: $_excludedTables');
+
+    final excludedTablesStatement = _excludedTables.map((name) => "'$name'").join(', ');
+    print('excludedTablesStatement, $excludedTablesStatement');
+
     final tableNames = (await _db.rawQuery('''
         SELECT name FROM sqlite_schema
-        WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN (?1)
-      ''', [_excludedTables.map((name) => "'$name'").join(', ')])).map((e) => e['name'] as String);
+        WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ($excludedTablesStatement)
+      ''')).map((e) => e['name'] as String);
 
     print('tableNames: $tableNames');
     return tableNames;
