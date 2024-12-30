@@ -14,15 +14,15 @@ export 'package:sqflite_common/sqlite_api.dart';
 export 'package:sql_crdt/sql_crdt.dart';
 
 class SqliteCrdt extends SqlCrdt {
-  final Database _db;
+  final Database db;
   final Iterable<String> _excludedTables;
 
-  SqliteCrdt._(this._db, this._excludedTables) : super(ExecutorApi(_db));
+  SqliteCrdt._(this.db, this._excludedTables) : super(ExecutorApi(db));
 
   /// Open or create a SQLite container as a SqlCrdt instance.
   ///
   /// See the Sqflite documentation for more details on opening a database:
-  /// https://github.com/tekartik/sqflite/blob/master/sqflite/doc/opening_db.md
+  /// https://github.com/tekartik/sqflite/blob/master/sqflite/doc/openingdb.md
   static Future<SqliteCrdt> open(
     String path, {
     bool singleInstance = true,
@@ -32,6 +32,9 @@ class SqliteCrdt extends SqlCrdt {
     FutureOr<void> Function(CrdtTableExecutor db, int from, int to)? onUpgrade,
   }) =>
       _open(path, false, singleInstance, version, excludedTables, onCreate, onUpgrade);
+
+
+  
 
   /// Open a transient SQLite in memory.
   /// Useful for testing or temporary sessions.
@@ -87,14 +90,14 @@ class SqliteCrdt extends SqlCrdt {
     return crdt;
   }
 
-  Future<void> close() => _db.close();
+  Future<void> close() => db.close();
 
   @override
   Future<Iterable<String>> getTables() async {
 
     final excludedTablesStatement = _excludedTables.map((name) => "'$name'").join(', ');
 
-    return (await _db.rawQuery('''
+    return (await db.rawQuery('''
         SELECT name FROM sqlite_schema
         WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ($excludedTablesStatement)
       ''')).map((e) => e['name'] as String);
@@ -103,11 +106,11 @@ class SqliteCrdt extends SqlCrdt {
 
   @override
   Future<Iterable<String>> getTableKeys(String table) async =>
-      (await _db.rawQuery('''
+      (await db.rawQuery('''
          SELECT name FROM pragma_table_info(?1)
          WHERE pk > 0
        ''', [table])).map((e) => e['name'] as String);
 
   BatchExecutor batch() =>
-      BatchExecutor(_db.batch(), canonicalTime.increment());
+      BatchExecutor(db.batch(), canonicalTime.increment());
 }
