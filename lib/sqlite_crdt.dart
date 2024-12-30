@@ -54,7 +54,6 @@ class SqliteCrdt extends SqlCrdt {
     FutureOr<void> Function(CrdtTableExecutor crdt, int from, int to)?
         onUpgrade,
   ) async {
-    print('SqliteCrdt._open, excludedTables: $excludedTables');
 
     if (sqliteCrdtIsWeb && !inMemory && path!.contains('/')) {
       path = path.substring(path.lastIndexOf('/') + 1);
@@ -84,7 +83,6 @@ class SqliteCrdt extends SqlCrdt {
     );
 
     final crdt = SqliteCrdt._(db, excludedTables ?? []);
-    print('crdt._excludedTables: ${crdt._excludedTables}');
     await crdt.init();
     return crdt;
   }
@@ -93,18 +91,14 @@ class SqliteCrdt extends SqlCrdt {
 
   @override
   Future<Iterable<String>> getTables() async {
-    print('SqliteCrdt.getTables, _excludedTables: $_excludedTables');
 
     final excludedTablesStatement = _excludedTables.map((name) => "'$name'").join(', ');
-    print('excludedTablesStatement, $excludedTablesStatement');
 
-    final tableNames = (await _db.rawQuery('''
+    return (await _db.rawQuery('''
         SELECT name FROM sqlite_schema
         WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ($excludedTablesStatement)
       ''')).map((e) => e['name'] as String);
 
-    print('tableNames: $tableNames');
-    return tableNames;
   }
 
   @override
