@@ -15,8 +15,9 @@ export 'package:sql_crdt/sql_crdt.dart';
 
 class SqliteCrdt extends SqlCrdt {
   final Database _db;
+  final Iterable<String> _excludedTables;
 
-  SqliteCrdt._(this._db) : super(ExecutorApi(_db));
+  SqliteCrdt._(this._db, this._excludedTables) : super(ExecutorApi(_db));
 
   /// Open or create a SQLite container as a SqlCrdt instance.
   ///
@@ -26,26 +27,29 @@ class SqliteCrdt extends SqlCrdt {
     String path, {
     bool singleInstance = true,
     int? version,
+    Iterable<String>? excludedTables,
     FutureOr<void> Function(CrdtTableExecutor db, int version)? onCreate,
     FutureOr<void> Function(CrdtTableExecutor db, int from, int to)? onUpgrade,
   }) =>
-      _open(path, false, singleInstance, version, onCreate, onUpgrade);
+      _open(path, false, singleInstance, version, excludedTables, onCreate, onUpgrade);
 
   /// Open a transient SQLite in memory.
   /// Useful for testing or temporary sessions.
   static Future<SqliteCrdt> openInMemory({
     bool singleInstance = false,
     int? version,
+    Iterable<String>? excludedTables,
     FutureOr<void> Function(CrdtTableExecutor db, int version)? onCreate,
     FutureOr<void> Function(CrdtTableExecutor db, int from, int to)? onUpgrade,
   }) =>
-      _open(null, true, singleInstance, version, onCreate, onUpgrade);
+      _open(null, true, singleInstance, version, excludedTables, onCreate, onUpgrade);
 
   static Future<SqliteCrdt> _open(
     String? path,
     bool inMemory,
     bool singleInstance,
     int? version,
+    Iterable<String>? excludedTables,
     FutureOr<void> Function(CrdtTableExecutor crdt, int version)? onCreate,
     FutureOr<void> Function(CrdtTableExecutor crdt, int from, int to)?
         onUpgrade,
@@ -77,7 +81,7 @@ class SqliteCrdt extends SqlCrdt {
       ),
     );
 
-    final crdt = SqliteCrdt._(db);
+    final crdt = SqliteCrdt._(db, excludedTables ?? []);
     await crdt.init();
     return crdt;
   }
@@ -87,8 +91,8 @@ class SqliteCrdt extends SqlCrdt {
   @override
   Future<Iterable<String>> getTables() async => (await _db.rawQuery('''
         SELECT name FROM sqlite_schema
-        WHERE type ='table' AND name NOT LIKE 'sqlite_%'
-      ''')).map((e) => e['name'] as String);
+        WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ?1
+      ''', ['(${_excludedTables.map((name) => "'$name'").join(', ')})'])).map((e) => e['name'] as String);
 
   @override
   Future<Iterable<String>> getTableKeys(String table) async =>
