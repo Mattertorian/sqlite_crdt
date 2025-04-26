@@ -17,6 +17,7 @@ dependencies:
   sql_crdt:
     git:
       url: https://github.com/Mattertorian/sql_crdt.git
+      ref: deeebd6c70a2ecde1131bdc53ac43a9f02455401
 #    path: ../sql_crdt
 
 dev_dependencies:
